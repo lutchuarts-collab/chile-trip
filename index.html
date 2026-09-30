@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Chile Trip 🇨🇱</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--text:#17191c;--muted:#6b7280;--line:#e5e7eb;--dark:#111827}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{max-width:1050px;margin:auto;padding:25px 20px 90px}.top h1{margin:4px 0;font-size:30px}.muted{color:var(--muted);font-size:13px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;gap:8px;padding:8px;z-index:100}
+nav button{border:0;background:transparent;padding:10px 14px;border-radius:12px;cursor:pointer;color:var(--muted)}
+nav button.active{background:#eef0f2;color:#111;font-weight:700}
+.screen{display:none}.screen.active{display:block}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 3px 14px #00000008}
+.hero{background:var(--dark);color:white;border-radius:22px;padding:24px;margin:18px 0}.small{font-size:12px;opacity:.7}.balance{font-size:36px;font-weight:800;margin:5px 0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:15px}.big{font-size:24px;font-weight:800}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:11px;font:inherit;background:#fff}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.btn{border:0;border-radius:12px;padding:11px 15px;cursor:pointer}.primary{background:var(--dark);color:white}.secondary{background:#eef0f2;color:#111}
+.item{padding:13px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}.empty{padding:25px;text-align:center;color:var(--muted)}
+#placeAutocomplete{width:100%;}#placeAutocomplete gmp-place-autocomplete{width:100%;}#map{height:500px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#eef0f2}.mapgrid{display:grid;grid-template-columns:1.7fr 1fr;gap:15px}.place{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:8px}
+.pill{display:inline-block;cursor:pointer;border:0;padding:8px 11px;background:#eef0f2;border-radius:99px;font-size:12px;margin:3px}
+@media(max-width:750px){.grid,.row,.mapgrid{grid-template-columns:1fr}.top h1{font-size:26px}#map{height:420px}nav{justify-content:space-around}nav button{padding:9px 6px;font-size:11px}}
+.pill.sel{background:#111827;color:#fff}.item{min-height:48px}</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+<div class="muted">VIAGEM • 04 — 10 OUTUBRO 2026</div>
+<h1>Chile Trip 🇨🇱</h1>
+<div class="muted">Seu roteiro, carteira, conversor e mapa.</div>
+</header>
+
+<section id="home" class="screen active">
+<div class="hero"><div class="small">SALDO DA VIAGEM</div><div class="balance" id="balance">R$ 5.000,00</div><div id="balanceCLP">≈ CLP 950.000</div></div>
+<div class="grid"><div class="card"><div class="muted">Total gasto</div><div class="big" id="spent">R$ 0,00</div></div><div class="card"><div class="muted">Lugares salvos</div><div class="big" id="placesCount">0</div></div></div>
+
+<div class="card" style="margin-top:15px">
+  <h2>Configurações da viagem</h2>
+  <div class="row">
+    <div><label>Orçamento inicial (BRL)</label><input id="budgetInput" type="number" min="0" step="0.01" placeholder="5000"></div>
+    <div><label>Cotação (CLP por 1 BRL)</label><input id="rateInput" type="number" min="0.01" step="0.01" placeholder="190"></div>
+  </div>
+  <button id="saveSettingsBtn" class="btn primary" style="margin-top:12px" type="button">Salvar configurações</button>
+  <div class="muted" style="margin-top:8px">Você pode alterar o orçamento e a cotação quando quiser.</div>
+</div>
+
+<div class="card" style="margin-top:15px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+    <div><h2 style="margin:0">Roteiro do dia</h2><div class="muted" id="homeDayLabel">04/10</div></div>
+    <select id="homeDaySelect" style="width:auto" onchange="setHomeDay(this.value)"></select>
+  </div>
+  <div id="homeItinerary" style="margin-top:10px"></div>
+</div>
+
+<div class="card" style="margin-top:15px">
+  <h2>Gastos por ambiente</h2>
+  <div class="muted" style="margin-bottom:10px">Distribuição dos gastos por categoria.</div>
+  <div id="homeSpendingBreakdown"></div>
+</div>
+
+<div class="card" style="margin-top:15px"><h2>Viagem</h2><div class="item"><b>04/10</b><span>Chegada / check-in ✈️</span></div><div class="item"><b>05/10</b><span>Santiago 📍</span></div><div class="item"><b>06/10</b><span>Passeio 🏔️</span></div></div>
+</section>
+
+<section id="roteiro" class="screen"><h2>🗓️ Roteiro</h2>
+<div id="days"></div>
+<div class="card" id="dayContent" style="margin-top:12px"></div>
+<div class="card" style="margin-top:12px">
+<h3>Adicionar atividade</h3>
+<div class="row">
+<div><label>Nome</label><input id="manualActivityName" placeholder="Ex.: Café da manhã"></div>
+<div><label>Horário</label><input id="manualActivityTime" type="time"></div>
+</div>
+<label>Observação</label><input id="manualActivityNote" placeholder="Opcional">
+<button class="btn primary" style="margin-top:12px" onclick="addManualActivity()">Adicionar ao dia selecionado</button>
+</div>
+</section>
+
+<section id="gastos" class="screen"><h2>💰 Gastos</h2>
+<div class="card"><div class="row"><div><label>Local</label><input id="expensePlace" placeholder="Restaurante..."></div><div><label>Valor CLP</label><input id="expenseAmount" type="number" placeholder="35000"></div></div>
+<div class="row"><div><label>Quem pagou</label><select id="payer"><option>Eu</option><option>Minha noiva</option><option>Ambos</option></select></div><div><label>Categoria</label><select id="category"><option>🍽️ Alimentação</option><option>🚕 Transporte</option><option>🎟️ Passeio</option><option>🛍️ Compras</option><option>🏨 Hospedagem</option><option>📦 Outros</option></select></div></div>
+<label>Dia da viagem</label><select id="expenseDay"><option>04/10</option><option>05/10</option><option>06/10</option><option>07/10</option><option>08/10</option><option>09/10</option><option>10/10</option></select>
+<button class="btn primary" style="margin-top:14px" onclick="addExpense()">Adicionar gasto</button></div>
+<div class="card" style="margin-top:15px"><h3>Histórico</h3><div id="expenseList"></div></div>
+</section>
+
+<section id="mapa" class="screen"><h2>🗺️ Mapa</h2>
+<div class="mapgrid">
+<div class="card"><div id="map"><div style="padding:22px;color:#6b7280">O mapa será carregado aqui.</div></div></div>
+<div>
+<div class="card"><h3>Adicionar lugar</h3><label>Pesquisar lugar</label><div id="placeAutocomplete"></div>
+<label>Dia</label><select id="mapDay"><option>04/10</option><option>05/10</option><option>06/10</option><option>07/10</option><option>08/10</option><option>09/10</option><option>10/10</option></select>
+<label>Horário</label><input id="mapTime" type="time">
+<label>Observação</label><textarea id="mapNote" rows="2"></textarea>
+<button class="btn primary" style="margin-top:12px;width:100%" onclick="savePlace()">Salvar lugar</button>
+<div id="mapMessage" class="muted" style="margin-top:10px"></div></div>
+<div class="card" style="margin-top:15px"><h3>Ativar Google Maps</h3><div class="muted">Cole sua Maps Demo Key. Ela fica salva somente neste navegador.</div>
+<input id="mapsKey" type="password" placeholder="Cole sua chave aqui"><button class="btn secondary" style="margin-top:9px" onclick="activateMaps()">Ativar mapa</button></div>
+</div></div>
+<div class="card" style="margin-top:15px"><h3>Lugares salvos</h3><div id="placeList"></div></div>
+</section>
+
+<section id="converter" class="screen"><h2>🔄 Conversor</h2><div class="card"><label>CLP</label><input id="convertCLP" type="number" placeholder="10000" oninput="convert()"><div class="balance" id="convertBRL" style="color:#111">R$ 0,00</div><div class="muted" id="rateText"></div></div></section>
+
+<nav>
+<button class="active" onclick="show('home',this)">🏠<br>Início</button>
+<button onclick="show('roteiro',this)">🗓️<br>Roteiro</button>
+<button onclick="show('gastos',this)">💰<br>Gastos</button>
+<button onclick="show('mapa',this);resizeMap()">🗺️<br>Mapa</button>
+<button onclick="show('converter',this)">🔄<br>Conversor</button>
+</nav>
+</div>
+
+<script>
+const STORAGE='chileTrip_clean_v1';
+const KEY_STORAGE='chileTripGoogleMapsKey';
+let data=JSON.parse(localStorage.getItem(STORAGE)||'null')||{budget:5000,rate:190,expenses:[],places:[]};
+let map=null,placeAutocomplete=null,selectedPlace=null,markers=[];
+
+function money(n){return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(n)}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(data));render()}
+function show(id,btn){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(id==='mapa')setTimeout(resizeMap,100)}
+function render(){
+ const spent=data.expenses.reduce((s,e)=>s+e.brl,0);
+ document.getElementById('balance').textContent=money(data.budget-spent);
+ document.getElementById('balanceCLP').textContent='≈ CLP '+Math.round((data.budget-spent)*data.rate).toLocaleString('pt-BR');
+ document.getElementById('spent').textContent=money(spent);
+ document.getElementById('placesCount').textContent=data.places.length;
+ document.getElementById('rateText').textContent='1 BRL ≈ '+data.rate.toFixed(2)+' CLP';
+ const bi=document.getElementById('budgetInput'); if(bi && document.activeElement!==bi) bi.value=data.budget;
+ const ri=document.getElementById('rateInput'); if(ri && document.activeElement!==ri) ri.value=data.rate;
+
+ document.getElementById('expenseList').innerHTML=data.expenses.length?
+   data.expenses.map((e,index)=>({e,index})).reverse().map(x=>'<div class="item"><div><b>'+(x.e.place||'Sem local')+'</b><div class="muted">'+(x.e.day||'Sem dia')+' • '+(x.e.payer||'')+' • '+(x.e.category||'')+'</div></div><div style="text-align:right"><b>'+money(x.e.brl)+'</b><div class="muted">'+Math.round(x.e.clp).toLocaleString('pt-BR')+' CLP</div><button class="btn secondary" style="margin-top:6px;padding:6px 9px" data-delete-expense="'+x.index+'">Excluir</button></div></div>').join('')
+   :'<div class="empty">Nenhum gasto ainda.</div>';
+
+ document.getElementById('placeList').innerHTML=data.places.length?
+   data.places.map((p,i)=>'<div class="place"><div class="item" style="padding:0;border-bottom:0"><div><b>'+(p.time?p.time+' — ':'')+p.name+'</b><div class="muted">'+p.day+' • '+p.address+'</div>'+(p.note?'<div class="muted">'+p.note+'</div>':'')+'</div><button class="btn secondary" style="padding:7px 10px" data-delete-place="'+i+'">Excluir</button></div></div>').join('')
+   :'<div class="empty">Nenhum lugar salvo.</div>';
+
+ updateSelectedDay();
+ renderHomeItinerary();
+ renderSpendingBreakdown();
+}
+function renderHomeItinerary(){
+ const sel=document.getElementById('homeDaySelect');
+ if(!sel)return;
+ if(!sel.options.length){
+   days.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o)});
+ }
+ sel.value=selectedDay;
+ document.getElementById('homeDayLabel').textContent=selectedDay;
+ const places=(data.places||[]).filter(p=>p.day===selectedDay).map(p=>({time:p.time||'',name:p.name,note:p.note||'',type:'Lugar'}));
+ const manual=(data.manualActivities||[]).map((p,index)=>({p,index})).filter(x=>x.p.day===selectedDay).map(x=>({time:x.p.time||'',name:x.p.name,note:x.p.note||'',type:'Atividade',manualIndex:x.index}));
+ const items=[...places,...manual].sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+ document.getElementById('homeItinerary').innerHTML=items.length
+   ? items.map(x=>'<div class="item"><div><b>'+(x.time?x.time+' — ':'')+x.name+'</b><div class="muted">'+x.type+(x.note?' • '+x.note:'')+'</div></div>'+(x.type==='Atividade'?'<button class="btn secondary" type="button" data-delete-manual="'+x.manualIndex+'" style="padding:6px 9px">Excluir</button>':'<span>📍</span>')+'</div>').join('')
+   : '<div class="empty">Nenhum compromisso para este dia.</div>';
+}
+function setHomeDay(dayValue){
+ selectedDay=dayValue;
+ document.querySelectorAll('#days .pill').forEach(x=>x.classList.toggle('sel',x.dataset.day===selectedDay));
+ updateSelectedDay();
+ renderHomeItinerary();
+}
+function renderSpendingBreakdown(){
+ const totals={};
+ (data.expenses||[]).forEach(e=>{
+   const key=e.category||'📦 Outros';
+   totals[key]=(totals[key]||0)+Number(e.brl||0);
+ });
+ const entries=Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+ const el=document.getElementById('homeSpendingBreakdown');
+ if(!entries.length){el.innerHTML='<div class="empty">Nenhum gasto registrado ainda.</div>';return}
+ const total=entries.reduce((s,x)=>s+x[1],0);
+ el.innerHTML=entries.map(([cat,value])=>{
+   const pct=total?Math.round(value/total*100):0;
+   return '<div style="margin:10px 0"><div class="item" style="border-bottom:0;padding:4px 0"><b>'+cat+'</b><span><b>'+money(value)+'</b> <span class="muted">('+pct+'%)</span></span></div><div style="height:7px;background:#eef0f2;border-radius:99px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#111827;border-radius:99px"></div></div></div>';
+ }).join('');
+}
+function addExpense(){
+ const clp=Number(document.getElementById('expenseAmount').value);
+ if(!clp){alert('Digite o valor em CLP.');return}
+ data.expenses.push({
+   clp:clp,
+   brl:clp/data.rate,
+   place:document.getElementById('expensePlace').value,
+   payer:document.getElementById('payer').value,
+   category:document.getElementById('category').value,
+   day:document.getElementById('expenseDay').value
+ });
+ document.getElementById('expenseAmount').value='';
+ document.getElementById('expensePlace').value='';
+ save();
+}
+function saveSettings(){
+ const budget=Number(document.getElementById('budgetInput').value);
+ const rate=Number(document.getElementById('rateInput').value);
+ if(!Number.isFinite(budget)||budget<0){alert('Digite um orçamento inicial válido.');return false}
+ if(!Number.isFinite(rate)||rate<=0){alert('Digite uma cotação válida.');return false}
+ data.budget=budget;
+ data.rate=rate;
+ localStorage.setItem(STORAGE,JSON.stringify(data));
+ render();
+ return true;
+}
+function deleteExpense(index){
+ index=Number(index);
+ if(!Number.isInteger(index)||index<0||index>=data.expenses.length)return;
+ if(!confirm('Excluir este gasto?'))return;
+ data.expenses.splice(index,1);
+ save();
+}
+function deletePlace(index){
+ index=Number(index);
+ if(!Number.isInteger(index)||index<0||index>=data.places.length)return;
+ if(!confirm('Excluir este local?'))return;
+ data.places.splice(index,1);
+ save();
+ if(map)refreshMarkers();
+}
+function convert(){const c=Number(document.getElementById('convertCLP').value)||0;document.getElementById('convertBRL').textContent=money(c/data.rate)}
+function activateMaps(){
+ const k=document.getElementById('mapsKey').value.trim();
+ if(!k){alert('Cole sua chave primeiro.');return}
+ localStorage.setItem(KEY_STORAGE,k);
+ document.getElementById('mapMessage').textContent='Carregando Google Maps...';
+ loadGoogleMaps();
+}
+function loadGoogleMaps(){
+ const k=localStorage.getItem(KEY_STORAGE);
+ if(!k){document.getElementById('mapMessage').textContent='Cole sua Maps Demo Key para ativar o mapa.';return}
+ if(window.google&&window.google.maps){initMap();return}
+ window.initMap=initMap;
+ const s=document.createElement('script');
+ s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(k)+'&libraries=places&callback=initMap';
+ s.async=true;s.defer=true;
+ s.onerror=function(){document.getElementById('mapMessage').textContent='Não foi possível carregar o Google Maps. Verifique a chave.'};
+ document.head.appendChild(s);
+}
+async function initMap(){
+ try{
+   map=new google.maps.Map(document.getElementById('map'),{
+     center:{lat:-33.4489,lng:-70.6693},
+     zoom:12,
+     mapTypeControl:false,
+     streetViewControl:false
+   });
+
+   const placesLib=await google.maps.importLibrary('places');
+   const PlaceAutocompleteElement=placesLib.PlaceAutocompleteElement;
+
+   const container=document.getElementById('placeAutocomplete');
+   container.innerHTML='';
+   placeAutocomplete=new PlaceAutocompleteElement();
+   placeAutocomplete.placeholder='Ex.: Sky Costanera';
+   placeAutocomplete.includedRegionCodes=['cl'];
+   placeAutocomplete.style.width='100%';
+   container.appendChild(placeAutocomplete);
+
+   placeAutocomplete.addEventListener('gmp-select',async ({placePrediction})=>{
+     try{
+       const place=placePrediction.toPlace();
+       await place.fetchFields({fields:['displayName','formattedAddress','location','id']});
+       selectedPlace=place;
+       if(place.location){
+         map.panTo(place.location);
+         map.setZoom(15);
+       }
+       document.getElementById('mapMessage').textContent='Lugar selecionado: '+(place.displayName?.text||'local escolhido')+'. Agora clique em "Salvar lugar".';
+     }catch(e){
+       console.error(e);
+       document.getElementById('mapMessage').textContent='Não foi possível obter os detalhes desse lugar.';
+     }
+   });
+
+   refreshMarkers();
+   document.getElementById('mapMessage').textContent='Google Maps ativo. Pesquise um lugar acima.';
+ }catch(e){
+   console.error(e);
+   document.getElementById('mapMessage').textContent='Google Maps carregou, mas o Places não pôde ser inicializado. Verifique se o Places API (New) está disponível para a sua chave.';
+ }
+}
+function refreshMarkers(){
+ if(!map)return;
+ markers.forEach(m=>m.setMap(null));markers=[];
+ data.places.forEach(p=>{const m=new google.maps.Marker({map:map,position:{lat:p.lat,lng:p.lng},title:p.name});markers.push(m)});
+}
+function savePlace(){
+ if(!selectedPlace||!selectedPlace.location){
+   alert('Pesquise um lugar e selecione uma sugestão do Google antes de salvar.');
+   return;
+ }
+ const name=selectedPlace.displayName?.text||'Lugar';
+ const address=selectedPlace.formattedAddress||'';
+ const loc=selectedPlace.location;
+ data.places.push({
+   name:name,
+   address:address,
+   lat:typeof loc.lat==='function'?loc.lat():loc.lat,
+   lng:typeof loc.lng==='function'?loc.lng():loc.lng,
+   placeId:selectedPlace.id||'',
+   day:document.getElementById('mapDay').value,
+   time:document.getElementById('mapTime').value||'',
+   note:document.getElementById('mapNote').value
+ });
+ document.getElementById('mapNote').value='';
+ document.getElementById('mapTime').value='';
+ selectedPlace=null;
+ save();
+ if(map)refreshMarkers();
+ document.getElementById('mapMessage').textContent='Lugar salvo no seu itinerário.';
+}
+function resizeMap(){if(map&&window.google){google.maps.event.trigger(map,'resize')}}
+const days=['04/10','05/10','06/10','07/10','08/10','09/10','10/10'];
+const plans=['Chegada • aeroporto • check-in','Santiago • centro histórico','Passeio • montanha / neve','Vinícola / passeio','Dia livre / compras','Último dia • jantar especial','Retorno ✈️'];
+let selectedDay='04/10';
+const daysEl=document.getElementById('days');
+days.forEach((d,i)=>{
+ const b=document.createElement('button');
+ b.className='pill';
+ b.textContent=d;
+ b.dataset.day=d;
+ b.onclick=function(){selectedDay=d;document.querySelectorAll('#days .pill').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');updateSelectedDay()};
+ daysEl.appendChild(b);
+});
+function updateSelectedDay(){
+ const content=document.getElementById('dayContent');
+ if(!content)return;
+ const places=(data.places||[]).filter(p=>p.day===selectedDay).slice().sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+ const manual=(data.manualActivities||[]).filter(p=>p.day===selectedDay).slice().sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+ const items=[
+   ...places.map(p=>({time:p.time||'',name:p.name,note:p.note||'',type:'Lugar'})),
+   ...manual.map(p=>({time:p.time||'',name:p.name,note:p.note||'',type:'Atividade'}))
+ ].sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+ content.innerHTML='<h3>'+selectedDay+'</h3><p class="muted">'+plans[days.indexOf(selectedDay)]+'</p>'+
+   (items.length?items.map(x=>'<div class="item"><div><b>'+(x.time?x.time+' — ':'')+x.name+'</b><div class="muted">'+x.type+(x.note?' • '+x.note:'')+'</div></div><span>📍</span></div>').join(''):'<div class="empty">Nenhum compromisso ainda. Adicione um lugar pela aba Mapa ou uma atividade abaixo.</div>');
+}
+function addManualActivity(){
+ const name=document.getElementById('manualActivityName').value.trim();
+ if(!name){alert('Digite o nome da atividade.');return}
+ data.manualActivities=data.manualActivities||[];
+ data.manualActivities.push({
+   name:name,
+   time:document.getElementById('manualActivityTime').value||'',
+   note:document.getElementById('manualActivityNote').value.trim(),
+   day:selectedDay
+ });
+ document.getElementById('manualActivityName').value='';
+ document.getElementById('manualActivityTime').value='';
+ document.getElementById('manualActivityNote').value='';
+ save();
+}
+document.querySelector('#days .pill').classList.add('sel');
+document.addEventListener('click',function(ev){
+ const exp=ev.target.closest('[data-delete-expense]');
+ if(exp){deleteExpense(exp.getAttribute('data-delete-expense'));return}
+ const place=ev.target.closest('[data-delete-place]');
+ if(place){deletePlace(place.getAttribute('data-delete-place'));return}
+ const manual=ev.target.closest('[data-delete-manual]');
+ if(manual){
+   const index=Number(manual.getAttribute('data-delete-manual'));
+   if(confirm('Excluir esta atividade?')){data.manualActivities=data.manualActivities||[];data.manualActivities.splice(index,1);save()}
+   return
+ }
+});
+document.getElementById('saveSettingsBtn').addEventListener('click',saveSettings);
+
+render();
+(async function(){
+ try{
+   const r=await fetch('https://open.er-api.com/v6/latest/BRL');
+   const j=await r.json();
+   if(j.rates&&j.rates.CLP){data.rate=j.rates.CLP;save()}
+ }catch(e){}
+ loadGoogleMaps()
+})();</script>
+
+<script>
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;const b=document.getElementById('installBtn');if(b)b.style.display='inline-block';});
+window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;const b=document.getElementById('installBtn');if(b)b.style.display='none';});
+document.addEventListener('click',async e=>{if(e.target && e.target.id==='installBtn' && deferredInstallPrompt){deferredInstallPrompt.prompt();try{await deferredInstallPrompt.userChoice;}catch(_){} deferredInstallPrompt=null;e.target.style.display='none';}});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
